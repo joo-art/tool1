@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC 자산 시뮬레이터</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;700&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --panel: #111118;
+    --border: #1e1e2e;
+    --accent: #f7931a;
+    --accent2: #ffd700;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --green: #00d4aa;
+    --red: #ff4d6d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(247,147,26,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(247,147,26,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .current-price-display {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .price-big {
+    font-family: 'Space Mono', monospace;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .price-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .price-date {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .input-group {
+    margin-bottom: 14px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="number"]:focus {
+    border-color: var(--accent);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    margin-top: 4px;
+  }
+
+  .scenario-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .scenario-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    color: var(--text);
+  }
+
+  .scenario-btn:hover { border-color: var(--accent); }
+  .scenario-btn.active { border-color: var(--accent); background: rgba(247,147,26,0.08); }
+
+  .scenario-btn .s-label {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .scenario-btn .s-val {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .result-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .result-item.highlight {
+    border-color: var(--accent);
+    background: rgba(247,147,26,0.05);
+  }
+
+  .result-item.full { grid-column: 1 / -1; }
+
+  .r-label {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .r-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .r-value.green { color: var(--green); }
+  .r-value.orange { color: var(--accent); }
+  .r-value.gold { color: var(--accent2); }
+
+  .r-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 14px 0;
+  }
+
+  .panama-section {
+    background: linear-gradient(135deg, rgba(247,147,26,0.05), rgba(255,215,0,0.03));
+    border: 1px solid rgba(247,147,26,0.2);
+  }
+
+  .panama-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .panama-row:last-child { border-bottom: none; }
+
+  .panama-row .key { color: var(--muted); }
+  .panama-row .val {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .val.pos { color: var(--green); }
+
+  .usd-krw-note {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    margin-top: 8px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 24px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .pulse {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="container">
+
+  <header>
+    <div class="logo">▸ Kay Joo · Bitcoin Strategy</div>
+    <h1>BTC <span>자산</span> 시뮬레이터</h1>
+    <div class="subtitle">2030 Panama Exit Strategy Calculator</div>
+  </header>
+
+  <!-- 현재 시세 -->
+  <div class="card">
+    <div class="card-title"><span class="pulse"></span>현재 BTC 시세</div>
+    <div class="current-price-display">
+      <div class="price-big" id="currentPrice">$80,300</div>
+      <div class="price-label">USD/BTC</div>
+    </div>
+    <div class="price-date">2026.05.09 기준 · CoinGecko</div>
+  </div>
+
+  <!-- 보유량 설정 -->
+  <div class="card">
+    <div class="card-title">보유량 설정</div>
+
+    <div class="input-group">
+      <label>콜드월렛 BTC (exit strategy)</label>
+      <input type="number" id="coldBtc" value="1.0" step="0.01" min="0" oninput="calculate()">
+    </div>
+
+    <div class="input-group">
+      <label>업비트 BTC (채무상환·이주비용)</label>
+      <input type="number" id="hotBtc" value="0.75" step="0.01" min="0" oninput="calculate()">
+    </div>
+
+    <div class="input-group">
+      <label>USD/KRW 환율</label>
+      <input type="number" id="usdKrw" value="1380" step="10" min="1000" oninput="calculate()">
+    </div>
+  </div>
+
+  <!-- 2030 시나리오 -->
+  <div class="card">
+    <div class="card-title">2030 BTC 가격 시나리오</div>
+
+    <div class="scenario-grid">
+      <div class="scenario-btn" onclick="setScenario(150000, this)">
+        <div class="s-label">BEAR</div>
+        <div class="s-val">$150K</div>
+      </div>
+      <div class="scenario-btn active" onclick="setScenario(350000, this)">
+        <div class="s-label">BASE</div>
+        <div class="s-val">$350K</div>
+      </div>
+      <div class="scenario-btn" onclick="setScenario(600000, this)">
+        <div class="s-label">BULL</div>
+        <div class="s-val">$600K</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>직접 입력: 2030 목표가격 (USD)</label>
+      <input type="number" id="target2030" value="350000" step="10000" min="0" oninput="onManualInput()">
+    </div>
+
+    <div class="input-group">
+      <label id="sliderLabel">슬라이더: $350,000</label>
+      <input type="range" id="priceSlider" min="50000" max="1000000" step="10000" value="350000"
+             oninput="onSlider()">
+      <div class="range-labels"><span>$50K</span><span>$500K</span><span>$1M</span></div>
+    </div>
+  </div>
+
+  <!-- 결과 -->
+  <div class="card">
+    <div class="card-title">현재 자산 가치</div>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="r-label">콜드월렛</div>
+        <div class="r-value orange" id="coldNow">-</div>
+        <div class="r-sub" id="coldNowKr">-</div>
+      </div>
+      <div class="result-item">
+        <div class="r-label">업비트</div>
+        <div class="r-value orange" id="hotNow">-</div>
+        <div class="r-sub" id="hotNowKr">-</div>
+      </div>
+      <div class="result-item full highlight">
+        <div class="r-label">BTC 합계 현재가치</div>
+        <div class="r-value gold" id="totalNow">-</div>
+        <div class="r-sub" id="totalNowKr">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">2030 예상 자산 가치</div>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="r-label">콜드월렛 2030</div>
+        <div class="r-value green" id="cold2030">-</div>
+        <div class="r-sub" id="cold2030Kr">-</div>
+      </div>
+      <div class="result-item">
+        <div class="r-label">업비트 2030</div>
+        <div class="r-value green" id="hot2030">-</div>
+        <div class="r-sub" id="hot2030Kr">-</div>
+      </div>
+      <div class="result-item full highlight">
+        <div class="r-label">BTC 합계 2030 예상</div>
+        <div class="r-value gold" id="total2030">-</div>
+        <div class="r-sub" id="total2030Kr">-</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="r-label">수익률 (현재→2030)</div>
+        <div class="r-value green" id="roi">-</div>
+      </div>
+      <div class="result-item">
+        <div class="r-label">배수</div>
+        <div class="r-value green" id="multiple">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 파나마 이주 계획 -->
+  <div class="card panama-section">
+    <div class="card-title">🇵🇦 Panama Volcán 이주 계획</div>
+
+    <div class="panama-row">
+      <span class="key">업비트 BTC 청산 (이주비)</span>
+      <span class="val" id="p_hotLiquid">-</span>
+    </div>
+    <div class="panama-row">
+      <span class="key">구미 아파트 매각</span>
+      <span class="val">₩100,000,000</span>
+    </div>
+    <div class="panama-row">
+      <span class="key">연금 (월 150만원)</span>
+      <span class="val">$1,087/mo</span>
+    </div>
+    <div class="panama-row">
+      <span class="key">볼칸 주택 구입 예산</span>
+      <span class="val">~$50,000</span>
+    </div>
+    <div class="panama-row">
+      <span class="key">볼칸 월 생활비 (예상)</span>
+      <span class="val">~$800/mo</span>
+    </div>
+    <div class="divider"></div>
+    <div class="panama-row">
+      <span class="key">이주 후 월 잉여 (연금기준)</span>
+      <span class="val pos">+$287/mo</span>
+    </div>
+    <div class="panama-row">
+      <span class="key">콜드월렛 BTC (장기보유)</span>
+      <span class="val" id="p_coldReserve">-</span>
+    </div>
+
+    <div class="usd-krw-note" id="exchangeNote">환율: 1,380 KRW/USD</div>
+  </div>
+
+  <div class="footer">
+    ▸ 투자 참고용 시뮬레이터 · 실제 투자 결정은 본인 판단으로
+  </div>
+
+</div>
+
+<script>
+  const fmt = (n) => '$' + Math.round(n).toLocaleString();
+  const fmtKr = (n) => '₩' + Math.round(n).toLocaleString();
+
+  function calculate() {
+    const cold = parseFloat(document.getElementById('coldBtc').value) || 0;
+    const hot = parseFloat(document.getElementById('hotBtc').value) || 0;
+    const rate = parseFloat(document.getElementById('usdKrw').value) || 1380;
+    const now = 80300;
+    const target = parseFloat(document.getElementById('target2030').value) || 350000;
+
+    // 현재
+    const coldNow = cold * now;
+    const hotNow = hot * now;
+    const totalNow = coldNow + hotNow;
+
+    document.getElementById('coldNow').textContent = fmt(coldNow);
+    document.getElementById('coldNowKr').textContent = fmtKr(coldNow * rate);
+    document.getElementById('hotNow').textContent = fmt(hotNow);
+    document.getElementById('hotNowKr').textContent = fmtKr(hotNow * rate);
+    document.getElementById('totalNow').textContent = fmt(totalNow);
+    document.getElementById('totalNowKr').textContent = fmtKr(totalNow * rate);
+
+    // 2030
+    const cold2030 = cold * target;
+    const hot2030 = hot * target;
+    const total2030 = cold2030 + hot2030;
+
+    document.getElementById('cold2030').textContent = fmt(cold2030);
+    document.getElementById('cold2030Kr').textContent = fmtKr(cold2030 * rate);
+    document.getElementById('hot2030').textContent = fmt(hot2030);
+    document.getElementById('hot2030Kr').textContent = fmtKr(hot2030 * rate);
+    document.getElementById('total2030').textContent = fmt(total2030);
+    document.getElementById('total2030Kr').textContent = fmtKr(total2030 * rate);
+
+    const roi = ((target - now) / now * 100).toFixed(1);
+    const mult = (target / now).toFixed(2);
+    document.getElementById('roi').textContent = '+' + roi + '%';
+    document.getElementById('multiple').textContent = mult + 'x';
+
+    // 파나마
+    document.getElementById('p_hotLiquid').textContent = fmt(hot2030) + ' (' + fmtKr(hot2030 * rate) + ')';
+    document.getElementById('p_coldReserve').textContent = fmt(cold2030) + ' (장기보유)';
+    document.getElementById('exchangeNote').textContent = '환율: ' + rate.toLocaleString() + ' KRW/USD';
+  }
+
+  function setScenario(price, btn) {
+    document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('target2030').value = price;
+    document.getElementById('priceSlider').value = price;
+    document.getElementById('sliderLabel').textContent = '슬라이더: $' + price.toLocaleString();
+    calculate();
+  }
+
+  function onSlider() {
+    const val = document.getElementById('priceSlider').value;
+    document.getElementById('target2030').value = val;
+    document.getElementById('sliderLabel').textContent = '슬라이더: $' + parseInt(val).toLocaleString();
+    document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+    calculate();
+  }
+
+  function onManualInput() {
+    const val = document.getElementById('target2030').value;
+    document.getElementById('priceSlider').value = Math.min(Math.max(val, 50000), 1000000);
+    document.getElementById('sliderLabel').textContent = '슬라이더: $' + parseInt(val || 0).toLocaleString();
+    document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+    calculate();
+  }
+
+  calculate();
+</script>
+</body>
+</html>
